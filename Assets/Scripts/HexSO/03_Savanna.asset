@@ -15,14 +15,12 @@ MonoBehaviour:
   hexName: Savanna
   type: 3
   terrainSprites:
-  - {fileID: 21300000, guid: d49eabd475261fc4189041e81c50b8b9, type: 3}
-  - {fileID: 21300000, guid: 38f028bd74ba7f646aa46ee1c4770f73, type: 3}
-  - {fileID: 21300000, guid: a6c5eb9fb70c14c41946cb0c8630c6ae, type: 3}
-  - {fileID: 21300000, guid: 4bcaf33aec85de44487102f689c8d0f1, type: 3}
+  - {fileID: 21300000, guid: 813b6e1e9ab222244b033ac518127f48, type: 3}
+  - {fileID: 21300000, guid: 64fc21f1e157c424a8cd7ee6160787dd, type: 3}
+  - {fileID: 21300000, guid: 01f517bbe3550c44791c62f9530d9797, type: 3}
   forestSprites:
-  - {fileID: 21300000, guid: 8e51ad6d190908b479914db1e5c1963d, type: 3}
-  - {fileID: 21300000, guid: bb1ac7988f0b60e47af493108c4a5a5a, type: 3}
-  - {fileID: 21300000, guid: a6921e02fef50354eb2569f9b3de4226, type: 3}
-  - {fileID: 21300000, guid: a3026e4ecc6a458498ee773d281a745c, type: 3}
+  - {fileID: 21300000, guid: 4e8ae39ea172ea64fbcc38bca243af2f, type: 3}
+  - {fileID: 21300000, guid: 1d9d5b2f1cf609d4ba5807c583e3aeef, type: 3}
+  - {fileID: 21300000, guid: 9b7a4cd1c0d105c48a79152b4b028760, type: 3}
   resourceYield: 
   moveCost: 1

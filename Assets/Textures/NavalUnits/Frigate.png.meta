@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 18ce455c4c6b28f45a3efefecbcd37e5
+guid: a675e0b39e703644a8e73005268047c1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8496456226791334773
-    second: Frigate_0
+      213: -4687670420733293706
+    second: Naval_Frigate_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 200
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -72,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -100,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Frigate_0
+      name: Naval_Frigate_0
       rect:
         serializedVersion: 2
-        x: 62
-        y: 47
-        width: 869
-        height: 954
+        x: 7
+        y: 17
+        width: 242
+        height: 223
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b8c5270f316861a80800000000000000
-      internalID: -8496456226791334773
+      spriteID: 67b0614b69c02feb0800000000000000
+      internalID: -4687670420733293706
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Frigate_0: -8496456226791334773
+      Naval_Frigate_0: -4687670420733293706
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
