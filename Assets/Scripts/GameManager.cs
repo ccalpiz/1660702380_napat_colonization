@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -56,6 +58,10 @@ public class GameManager : MonoBehaviour
     public Unit CurUnit { get { return curUnit; } set { curUnit = value; } }
 
     [SerializeField]
+    private Unit curTarget;
+    public Unit CurTarget { get { return curTarget; } set { curTarget = value; } }
+
+    [SerializeField]
     private Unit curAiUnit;
     public Unit CurAiUnit { get { return curAiUnit; } set { curAiUnit = value; } }
 
@@ -100,6 +106,30 @@ public class GameManager : MonoBehaviour
     public const int TROPICALNORTH = HEIGHT - 30; //30
     public const int TROPICALSOUTH = 30;
 
+    [SerializeField]
+    private ProductData[] productData;
+    public ProductData[] ProductData { get { return productData; } }
+
+    [SerializeField]
+    private int year = 1600;
+    public int Year { get { return year; } set { year = value; } }
+
+    [SerializeField]
+    private Unit winner;
+
+    [SerializeField]
+    private Unit loser;
+
+    [SerializeField]
+    private Faction curForeignFaction; //cur Faction that player's meeting
+    public Faction CurForeignFaction { get { return curForeignFaction; } set { curForeignFaction = value; } }
+
+    private bool foundNewLand = false; //has player found a new world?
+    public bool FoundNewLand { get { return foundNewLand; } set { foundNewLand = value; } }
+
+    private bool firstTimeMakeLandfall = false;
+    public bool FirstTimeMakeLandfall { get { return firstTimeMakeLandfall; } set { firstTimeMakeLandfall = value; } }
+
     public static GameManager instance;
 
     void Awake()
@@ -119,6 +149,8 @@ public class GameManager : MonoBehaviour
         GenerateAllEuropeanExplorerUnits();
         GenerateAllNativeTowns();
         GenerateAllNativeUnits();
+
+        ShowFirstKingDialogText();
     }
 
     // Update is called once per frame
@@ -132,6 +164,9 @@ public class GameManager : MonoBehaviour
 
         if (Keyboard.current.backspaceKey.wasPressedThisFrame)
             Endturn();
+
+        if (Keyboard.current.eKey.wasPressedThisFrame)
+            EuropePanel();
     }
 
     private void GenerateAllHexes()
@@ -187,14 +222,14 @@ public class GameManager : MonoBehaviour
 
     public void SelectPlayerFaction()
     {
-        int i = 3; //Netherland
+        int i = Settings.playerNationId;
         playerFaction = factions[i];
     }
 
-    private void GenerateEuropeanShip(Faction faction)
+    private void GenerateEuropeanShip(Faction faction, int yPos)
     {
-        int x = WIDTH - 1; //near right edge of a map
-        int y = Random.Range(0, HEIGHT);
+        int x = WIDTH - 2; //near right edge of a map
+        int y = yPos;
         Hex hex = allHexes[x, y];
 
         GameObject obj = Instantiate(navalUnitPrefab, hex.Pos, Quaternion.identity, faction.UnitParent);
@@ -211,13 +246,33 @@ public class GameManager : MonoBehaviour
             CameraController.instance.MoveCamera(ship.CurPos);
             ship.Visible = true;
         }
+        else
+        {
+            Hex destinationHex = FindNearestLandHexToLand(yPos);
+            if (destinationHex != null)
+                ship.SetUnitDestination(destinationHex);
+        }
     }
 
     private void GenerateAllEuropeanShips()
     {
+        int interval = HEIGHT / 5;
+        int n = HEIGHT;
+
+        List<int> spots = new List<int>();
+
         for (int i = 0; i < 5; i++)
         {
-            GenerateEuropeanShip(factions[i]);
+            n -= Random.Range(5, interval);
+            spots.Add(n);
+        }
+
+        for (int i = 0; i < 5; i++)
+        {
+            int index = Random.Range(0, spots.Count);
+            int yPosition = spots[index];
+            spots.RemoveAt(index);
+            GenerateEuropeanShip(factions[i], yPosition);
         }
     }
 
@@ -241,6 +296,12 @@ public class GameManager : MonoBehaviour
 
     public void ClearDarkFogAroundUnit(Unit unit)
     {
+        if (unit == null)
+            return;
+
+        if (unit.CurHex == null)
+            return;
+
         unit.CurHex.DiscoverHex();
 
         List<Hex> adjHexes = HexCalculator.GetHexAround(allHexes, unit.CurHex);
@@ -264,12 +325,18 @@ public class GameManager : MonoBehaviour
                 curUnit.gameObject.SetActive(false);
         }
 
-        unit.gameObject.SetActive(true);
-        unit.SetUnitToFrontLayerOrder();
+        if (unit.UnitType == UnitType.Land && unit.UnitStatus != UnitStatus.WorkInField && unit.UnitStatus != UnitStatus.Hidden)
+        {
+            unit.gameObject.SetActive(true);
+            unit.SetUnitToFrontLayerOrder();
+        }
 
         curUnit = unit;
-        //UpdateCanGoHex();
 
+        if (unit.UnitStatus != UnitStatus.Hidden)
+            CameraController.instance.MoveCamera(curUnit.transform.position);
+
+        HideOtherLandUnits(curUnit);
         FocusPlayerUnit(curUnit);
         //Debug.Log(curUnit);
     }
@@ -371,7 +438,7 @@ public class GameManager : MonoBehaviour
         GameObject obj = Instantiate(landUnitPrefab, hex.Pos, Quaternion.identity, ship.PassengerParent.transform);
         LandUnit unit = obj.GetComponent<LandUnit>();
 
-        unit.UnitInit(this, faction, landUnitData[unitId]);
+        unit.UnitInit(this, UIManager.instance, faction, landUnitData[unitId]);
         unit.SetupPosition(hex);
 
         unit.UnitStatus = UnitStatus.OnBoard;
@@ -417,7 +484,6 @@ public class GameManager : MonoBehaviour
             i = 0;
 
         SelectPlayerUnit(playerFaction.Units[i]);
-        CameraController.instance.MoveCamera(curUnit.transform.position);
     }
 
     public void GenerateTown(Faction faction, Hex curHex)
@@ -467,7 +533,7 @@ public class GameManager : MonoBehaviour
         GameObject obj = Instantiate(landUnitPrefab, hex.Pos, Quaternion.identity, faction.UnitParent);
         LandUnit unit = obj.GetComponent<LandUnit>();
 
-        unit.UnitInit(this, faction, landUnitData[unitId]);
+        unit.UnitInit(this, UIManager.instance, faction, landUnitData[unitId]);
         unit.SetupPosition(hex);
         unit.ShowHideSprite(show);
 
@@ -482,7 +548,10 @@ public class GameManager : MonoBehaviour
             {
                 int id = factions[i].IsTropicalNatives ? 4 : 3;  //Tropical or Plain Indians
 
-                GenerateLandUnit(factions[i], town.CurHex, id, false);
+                for (int j = 0; j < 2; j++)
+                {
+                    GenerateLandUnit(factions[i], town.CurHex, id, false);
+                }
             }
         }
     }
@@ -493,6 +562,7 @@ public class GameManager : MonoBehaviour
         {
             unit.CurHex.ClearForest();
             unit.UnitStatus = UnitStatus.None;
+            unit.ChangeStatusIcon();
         }
     }
 
@@ -502,6 +572,7 @@ public class GameManager : MonoBehaviour
         {
             GenerateTown(faction, unit.CurHex);
             unit.UnitStatus = UnitStatus.None;
+            unit.ChangeStatusIcon();
         }
     }
 
@@ -541,8 +612,17 @@ public class GameManager : MonoBehaviour
 
     public void Endturn()
     {
+        if (playerTurn == false)
+            return;
+
         if (curUnit != null)
             curUnit.ToggleBorder(false, Color.green);
+
+        year++;
+        DialogManager.instance.ToggleAiMoveDialog(true);
+
+        UIManager.instance.CheckActiveUIPanel();
+        EuropeManager.instance.UpdateShipInTransitTurn();
 
         Debug.Log("End Turn");
         playerTurn = false;
@@ -570,5 +650,478 @@ public class GameManager : MonoBehaviour
 
         UIManager.instance.ToggleTownPanel(true);
         UIManager.instance.SetupCurrentTown(curTown.CurHex, aroundHexes);
+    }
+
+    public void AccumulateStockAllTowns()
+    {
+        for (int i = 0; i < factions.Length; i++)
+        {
+            for (int j = 0; j < factions[i].Towns.Count; j++)
+            {
+                factions[i].Towns[j].AccumulateToWarehouse();
+            }
+        }
+    }
+
+    public void StartNewTurn()
+    {
+        playerTurn = true;
+        SelectPlayerFirstUnit();
+        AccumulateStockAllTowns();
+
+        EuropeManager.instance.RandomImmigrantsToNewWorld();
+
+        EuropeManager.instance.ConsumeEUStock();
+
+        DialogManager.instance.ToggleAiMoveDialog(false);
+    }
+
+    public void HideOtherLandUnits(Unit thisUnit)
+    {
+        if (thisUnit.CurHex == null)
+            return;
+
+        foreach (Unit other in thisUnit.CurHex.UnitsInHex)
+        {
+            if (other.UnitType == UnitType.Land && other.Faction == playerFaction)
+            {
+                if (other != thisUnit)
+                    other.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    public void ShowOtherLandUnits(Unit thisUnit)
+    {
+        if (thisUnit.CurHex == null)
+            return;
+
+        foreach (Unit other in thisUnit.CurHex.UnitsInHex)
+        {
+            if (other.UnitType == UnitType.Land && other.Faction == playerFaction)
+            {
+                if (other != thisUnit && (other.UnitStatus != UnitStatus.WorkInField && other.UnitStatus != UnitStatus.OnBoard))
+                {
+                    other.gameObject.SetActive(true);
+                    return;
+                }
+            }
+        }
+    }
+
+    public void EuropePanel()
+    {
+        UIManager.instance.CheckEuropePanel();
+    }
+
+    public void CheckShipToEurope()
+    {
+        //Debug.Log("Checking Ship");
+        foreach (Unit unit in playerFaction.Units)
+        {
+            if (unit.UnitType == UnitType.Naval && unit.CurHex != null)
+            {
+                if (unit.CurHex.X == WIDTH - 1)
+                {
+                    NavalUnit ship = (NavalUnit)unit;
+                    CameraController.instance.MoveCamera(unit.CurPos);
+
+                    //Debug.Log("Go to Europe?");
+                    EuropeManager.instance.QuestionGoToEurope(ship);
+                }
+            }
+        }
+    }
+
+    private void MoveEuropeanShip(NavalUnit ship)
+    {
+        int x = WIDTH - 2; //near right edge of a map
+        int y = Random.Range(0, HEIGHT);
+        Hex hex = allHexes[x, y];
+
+        Debug.Log($"Position: {hex.Pos}");
+
+        ship.SetupPosition(hex);
+        ship.gameObject.SetActive(true);
+        ship.gameObject.transform.position = ship.CurPos;
+
+        ClearDarkFogAroundUnit(ship);
+        SelectPlayerUnit(ship);
+        CameraController.instance.MoveCamera(ship.CurPos);
+        ship.Visible = true;
+    }
+
+    public void CheckToGenerateShipFromEurope(NavalUnit ship)
+    {
+        int y = Random.Range(0, HEIGHT);
+
+        if (!playerFaction.Units.Contains(ship))
+        {
+            Debug.Log("New Ship");
+            GenerateEuropeanShip(playerFaction, y);
+        }
+        else
+        {
+            Debug.Log("Old Ship");
+            MoveEuropeanShip(ship);
+        }
+    }
+
+    private IEnumerator ShowCasualtyReportWait(float seconds)
+    {
+        //attacking animation
+        yield return new WaitForSeconds(seconds);
+        Debug.Log("Show Combat Dialog");
+        DialogManager.instance.ToggleCombatPanel(true);
+    }
+
+    private void CalculateCombatLogic(Unit ourUnit, Unit enemyUnit)
+    {
+        if (ourUnit.Strength > enemyUnit.Strength)
+        {
+            winner = ourUnit;
+            loser = enemyUnit;
+        }
+        else if (ourUnit.Strength < enemyUnit.Strength)
+        {
+            winner = enemyUnit;
+            loser = ourUnit;
+        }
+        else//draw
+        {
+            int n = Random.Range(0, 2);
+
+            if (n == 0)
+            {
+                winner = ourUnit;
+                loser = enemyUnit;
+            }
+            else
+            {
+                winner = enemyUnit;
+                loser = ourUnit;
+            }
+        }
+    }
+
+    public void SetupDeadUnit(Unit deadUnit)
+    {
+        Faction faction = deadUnit.Faction;
+        Hex hex = deadUnit.CurHex;
+
+        if (deadUnit.UnitType == UnitType.Naval)
+        {
+            NavalUnit ship = (NavalUnit)deadUnit;
+
+            foreach (LandUnit passenger in ship.Passengers)
+            {
+                if (hex.UnitsInHex.Contains(passenger))
+                    hex.UnitsInHex.Remove(passenger);
+
+                faction.Units.Remove(passenger);
+                Destroy(passenger.gameObject);
+            }
+        }
+
+        if (hex.UnitsInHex.Contains(deadUnit))
+            hex.UnitsInHex.Remove(deadUnit);
+
+        faction.Units.Remove(deadUnit);
+
+        if (deadUnit.gameObject != null)
+            Destroy(deadUnit.gameObject);
+    }
+
+    private void ShowMilitaryResultDialog(Unit winner, Unit loser)
+    {
+        Unit playerUnit = null;
+
+        if (winner.Faction == playerFaction)
+            playerUnit = winner;
+        else if (loser.Faction == playerFaction)
+            playerUnit = loser;
+
+        if (playerUnit != null)
+        {
+            if (playerUnit.UnitType == UnitType.Naval)
+                DialogManager.instance.ShowNavalCombatResult(winner, loser);
+            else
+                DialogManager.instance.ShowArmyCombatResult(winner, loser);
+        }
+        else if (winner.Faction.MetByPlayer || loser.Faction.MetByPlayer)
+            DialogManager.instance.ShowScoutCombatResult(winner, loser);
+    }
+
+    private IEnumerator ShowUnitDies(float seconds, Unit winner, Unit loser)
+    {
+        yield return new WaitForSeconds(seconds);
+        Debug.Log("Hide Combat Dialog");
+        DialogManager.instance.ToggleCombatPanel(false);
+
+        //loser dies animation
+        Debug.Log("Animation");
+
+        SetupDeadUnit(loser);
+        ShowMilitaryResultDialog(winner, loser);
+    }
+
+    public void StartCombat(Unit attacker, Unit defender)
+    {
+        DialogManager.instance.CombatAnalysisInit(attacker, defender);
+
+        if (attacker.Faction == playerFaction || defender.Faction == playerFaction)
+            StartCoroutine(ShowCasualtyReportWait(0.5f));
+
+        CalculateCombatLogic(attacker, defender);
+
+        StartCoroutine(ShowUnitDies(4f, winner, loser));
+    }
+
+    public void ShowFirstKingDialogText()
+    {
+        DialogManager.instance.ShowFirstKingQuestDialogText();
+    }
+
+    public bool CheckIfAroundHexHasTown(Hex hex)
+    {
+        return HexCalculator.CheckIfHexAroundHasTown(allHexes, hex);
+    }
+
+    public void CheckUnmetFaction(Unit unit)
+    {
+        Faction faction = null;
+
+        if (unit.Faction == playerFaction)
+            faction = HexCalculator.CheckNeverMetFaction(allHexes, unit);
+        else if (unit.Faction.MetByPlayer == false)
+            faction = HexCalculator.UnMetFactionCheckForPlayer(allHexes, unit);
+
+        if (faction != null)
+        {
+            curForeignFaction = faction;
+            DialogManager.instance.ToggleForeignDialog(true);
+        }
+    }
+
+    //Ship bought from Europe in Map01 as hidden ship at x, y (0, 0)
+    public NavalUnit GenerateHiddenShip(int id)
+    {
+        Hex hex = allHexes[0, 0];
+
+        GameObject obj = Instantiate(navalUnitPrefab, hex.Pos, Quaternion.identity, playerFaction.UnitParent);
+        NavalUnit ship = obj.GetComponent<NavalUnit>();
+
+        ship.UnitInit(this, playerFaction, navalUnitData[id]);
+        ship.SetupPosition(hex);
+        playerFaction.Units.Add(ship);
+        ship.UnitStatus = UnitStatus.Hidden;
+
+        return ship;
+    }
+
+    public bool CheckShipPriceAndMoney(int i)
+    {
+        if (playerFaction.Money < navalUnitData[i].price)
+            return false;
+        else
+            return true;
+    }
+
+    public void PayShipPrice(int i)
+    {
+        playerFaction.Money -= navalUnitData[i].price;
+    }
+
+    public bool CheckLandUnitPriceAndMoney(int i)
+    {
+        if (playerFaction.Money < landUnitData[i].price)
+            return false;
+        else
+            return true;
+    }
+
+    //Land Unit bought from Europe in Map01 as hidden land unit at x, y (0, 0)
+    public LandUnit GenerateHiddenLandUnit(int id)
+    {
+        Hex hex = allHexes[0, 0];
+
+        GameObject obj = Instantiate(landUnitPrefab, hex.Pos, Quaternion.identity, playerFaction.UnitParent);
+        LandUnit unit = obj.GetComponent<LandUnit>();
+
+        unit.UnitInit(this, UIManager.instance, playerFaction, landUnitData[id]);
+        unit.SetupPosition(hex);
+        playerFaction.Units.Add(unit);
+        unit.UnitStatus = UnitStatus.Hidden;
+
+        return unit;
+    }
+
+    public void PayUnitPrice(int i)
+    {
+        playerFaction.Money -= landUnitData[i].price;
+    }
+
+    public void CheckIfPassengerReadyToBoardShip(NavalUnit ship, Hex hex, Faction faction)
+    {
+        List<Unit> unitsToRemove = new List<Unit>();
+
+        foreach (Unit unit in hex.UnitsInHex)
+        {
+            if (unit.UnitType == UnitType.Land && unit.UnitStatus == UnitStatus.ToBoard)
+            {
+                if ((ship.Passengers.Count + ship.CargoList.Count) < ship.CargoHoldNum)
+                {
+                    LandUnit landUnit = (LandUnit)unit;
+                    landUnit.BoardingShip(ship);
+                    landUnit.gameObject.SetActive(false);
+                    unitsToRemove.Add(unit);
+                }
+            }
+        }
+
+        foreach (Unit unit in unitsToRemove)
+            hex.UnitsInHex.Remove(unit);
+    }
+
+    public void CheckPassengerArriving(NavalUnit ship, Hex hex, Faction faction)
+    {
+        foreach (LandUnit unit in ship.Passengers)
+        {
+            //ArriveAtPort
+            unit.UnitStatus = UnitStatus.None;
+            unit.ChangeStatusIcon();
+            gameObject.transform.parent = faction.UnitParent.transform;
+            unit.TransportShip = null;
+        }
+        ship.Passengers.Clear();
+    }
+
+    private Hex FindNearestLandHexToLand(int y)
+    {
+        int min = oceanEdgeIndex - 3;
+        int max = oceanEdgeIndex + 4;
+
+        Hex destHex = null;
+
+        for (int x = min; x <= max; x++)
+        {
+            //Debug.Log($"checking:{x},{y}");
+            if (allHexes[x, y].HexType != HexType.Ocean)
+            {
+                //Debug.Log($"found:{x},{y}");
+                destHex = allHexes[x, y];
+            }
+        }
+        return destHex;
+    }
+
+    public int GetIfProductIDDoubledFromExpert(Hex hex)
+    {
+        LandUnit landUnit = (LandUnit)hex.Labor;
+        if (landUnit == null)
+            return -1;
+
+        int productID = -1;
+
+        switch (landUnit.LandUnitType)
+        {
+            case LandUnitType.Farmers:
+                if (hex.HexType != HexType.Ocean)
+                    productID = 0;//Corn
+                break;
+            case LandUnitType.Fishermen:
+                if (hex.HexType == HexType.Ocean)
+                    productID = 0;//Fish
+                break;
+            case LandUnitType.SugarPlanters:
+                productID = 1;
+                break;
+            case LandUnitType.TobaccoPlanters:
+                productID = 2;
+                break;
+            case LandUnitType.CottonPlanters:
+                productID = 3;
+                break;
+            case LandUnitType.FurTrappers:
+                productID = 4;
+                break;
+            case LandUnitType.Lumberjacks:
+                productID = 5;
+                break;
+            case LandUnitType.OreMiners:
+                productID = 6;
+                break;
+            case LandUnitType.SilverMiners:
+                productID = 7;
+                break;
+            case LandUnitType.Ranchers:
+                productID = 8;
+                break;
+            case LandUnitType.RumDistillers:
+                productID = 9;
+                break;
+            case LandUnitType.Tobacconists:
+                productID = 10;
+                break;
+            case LandUnitType.CottonWeavers:
+                productID = 11;
+                break;
+            case LandUnitType.FurTraders:
+                productID = 12;
+                break;
+            case LandUnitType.Blacksmiths:
+                productID = 14;
+                break;
+            case LandUnitType.Gunsmiths:
+                productID = 15;
+                break;
+            case LandUnitType.Carpenters:
+                productID = 16;//Hammers
+                break;
+            case LandUnitType.FirebrandPreachers:
+                productID = 17;//Crosses
+                break;
+            case LandUnitType.Statesmen:
+                productID = 18;//Bells
+                break;
+        }
+        return productID;
+    }
+
+    public void ToAttackNationAtPeace(Unit defender)
+    {
+        if (defender.Faction != null)
+        {
+            curForeignFaction = defender.Faction;
+            curTarget = defender;
+            DialogManager.instance.ToggleArmyDialog(true);
+            DialogManager.instance.WhetherToDeclareWarOnNation();
+        }
+    }
+
+    public bool CheckIfHexAroundHasLand(Hex hex)
+    {
+        return HexCalculator.CheckIfHexAroundHasLand(allHexes, hex);
+    }
+
+    public void CheckIfFoundNewLand(Hex hex)
+    {
+        if (foundNewLand == false)
+        {
+            if (CheckIfHexAroundHasLand(hex))
+            {
+                DialogManager.instance.ToggleNewLandEvent(true);
+                foundNewLand = true;
+            }
+        }
+    }
+
+    public void CheckIfFirstTimeMakeLandfall(Hex hex)
+    {
+        if (firstTimeMakeLandfall == false && hex.HexType != HexType.Ocean)
+        {
+            DialogManager.instance.ToggleMakeLandfallEvent(true);
+            firstTimeMakeLandfall = true;
+        }
     }
 }

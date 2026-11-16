@@ -3,7 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
-public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
 {
     [SerializeField]
     private Image unitImage;
@@ -19,6 +19,17 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     [SerializeField]
     private TerrainSlot terrainSlot;
 
+    [SerializeField]
+    private Image statusIcon;
+
+    [SerializeField]
+    private UIManager uiMgr;
+
+    void Awake()
+    {
+        uiMgr = UIManager.instance;
+    }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -31,6 +42,20 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         
     }
 
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (landUnit.UnitStatus == UnitStatus.None || landUnit.UnitStatus == UnitStatus.ToBoard
+    || landUnit.UnitStatus == UnitStatus.Hidden)
+        {
+            if (eventData.button == PointerEventData.InputButton.Right)
+            {
+                uiMgr.CurLandUnit = landUnit;
+                uiMgr.CurUnitIcon = this;
+                uiMgr.ToggleOrderPanel(true);
+            }
+        }
+    }
+
     public void UnitInit(LandUnit landUnit)
     {
         unitImage.sprite = landUnit.UnitSprite.sprite;
@@ -39,6 +64,9 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (uiMgr.InEurope)
+            return;
+
         iconParent = transform.parent;
         transform.SetParent(transform.root);
         transform.SetAsLastSibling();
@@ -47,11 +75,17 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void OnDrag(PointerEventData eventData)
     {
+        if (uiMgr.InEurope)
+            return;
+
         transform.position = Mouse.current.position.value;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (uiMgr.InEurope)
+            return;
+
         transform.SetParent(iconParent);
         unitImage.raycastTarget = true;
     }
@@ -61,6 +95,9 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (terrainSlot != null)
         {
             terrainSlot.Hex.Labor = null;
+            terrainSlot.ReduceTownYield();
+            terrainSlot.RemoveYieldIcons();
+            terrainSlot.Hex.YieldID = -1;//no yield
             terrainSlot = null;
         }
     }
@@ -68,5 +105,22 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void WorkAtNewTerrainSlot(TerrainSlot terrainSlot)
     {
         this.terrainSlot = terrainSlot;
+    }
+
+    public void CheckStatusIcon()
+    {
+        if (statusIcon == null)
+            return;
+
+        switch (landUnit.UnitStatus)
+        {
+            case UnitStatus.ToBoard:
+                statusIcon.gameObject.SetActive(true);
+                statusIcon.sprite = landUnit.StatusSpritesList[2];
+                break;
+            default:
+                statusIcon.gameObject.SetActive(false);
+                break;
+        }
     }
 }

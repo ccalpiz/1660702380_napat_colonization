@@ -106,4 +106,188 @@ public static class HexCalculator
         }
         return hexArray;
     }
+
+    public static Faction CheckNeverMetFaction(Hex[,] hexes, Unit playerUnit)
+    {
+        List<Hex> aroundHexes = new List<Hex>();
+        aroundHexes = GetHexAround(hexes, playerUnit.CurHex);
+
+        foreach (Hex hex in aroundHexes)
+        {
+            foreach (Unit other in hex.UnitsInHex)
+            {
+                if (other.Faction != playerUnit.Faction)
+                {
+                    if (other.Faction.MetByPlayer == false)
+                    {
+                        return other.Faction;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public static Faction UnMetFactionCheckForPlayer(Hex[,] hexes, Unit unmetFactionUnit)
+    {
+        List<Hex> aroundHexes = new List<Hex>();
+        aroundHexes = GetHexAround(hexes, unmetFactionUnit.CurHex);
+
+        foreach (Hex hex in aroundHexes)
+        {
+            foreach (Unit other in hex.UnitsInHex)
+            {
+                if (other.Faction == GameManager.instance.PlayerFaction)
+                {
+                    if (unmetFactionUnit.Faction.MetByPlayer == false)
+                    {
+                        return unmetFactionUnit.Faction;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<HexDirection> GetHexDirectionList(Hex currentHex, Hex destHex)
+    {
+        //Debug.Log("Get Direction");
+        List<HexDirection> directions = new List<HexDirection>();
+        //TopLeft
+        if (destHex.X <= currentHex.X && destHex.Y > currentHex.Y)
+        {
+            //Debug.Log("TopLeft");
+            directions.Add(HexDirection.TopLeft);
+            directions.Add(HexDirection.TopRight);
+            directions.Add(HexDirection.Left);
+            return directions;
+        }
+
+        //TopRight
+        if (destHex.X > currentHex.X && destHex.Y > currentHex.Y)
+        {
+            //Debug.Log("TopRight");
+            directions.Add(HexDirection.TopRight);
+            directions.Add(HexDirection.TopLeft);
+            directions.Add(HexDirection.Right);
+            return directions;
+        }
+
+        //Right
+        if (destHex.X > currentHex.X && destHex.Y == currentHex.Y)
+        {
+            //Debug.Log("Right");
+            directions.Add(HexDirection.Right);
+            directions.Add(HexDirection.TopRight);
+            directions.Add(HexDirection.BottomRight);
+            return directions;
+        }
+
+        //BottomRight
+        if (destHex.X >= currentHex.X && destHex.Y < currentHex.Y)
+        {
+            //Debug.Log("BottomRight");
+            directions.Add(HexDirection.BottomRight);
+            directions.Add(HexDirection.Right);
+            directions.Add(HexDirection.BottomLeft);
+            return directions;
+        }
+
+        //BottomLeft
+        if (destHex.X <= currentHex.X && destHex.Y < currentHex.Y)
+        {
+            //Debug.Log("BottomLeft");
+            directions.Add(HexDirection.BottomLeft);
+            directions.Add(HexDirection.BottomRight);
+            directions.Add(HexDirection.Left);
+            return directions;
+        }
+
+        //Left
+        if (destHex.X < currentHex.X && destHex.Y == currentHex.Y)
+        {
+            //Debug.Log("Left");
+            directions.Add(HexDirection.Left);
+            directions.Add(HexDirection.BottomRight);
+            directions.Add(HexDirection.BottomLeft);
+            return directions;
+        }
+        return null;
+    }
+
+    public static Hex FindNextHexToGo(Unit unit, Hex currentHex, Hex destinationHex, Hex[,] allHexes)
+    {
+        if (destinationHex == null)
+            return null;
+
+        if (destinationHex == currentHex)
+            return null;
+
+        List<HexDirection> directions = GetHexDirectionList(currentHex, destinationHex);
+
+        List<Hex> hexesAround = new List<Hex>();
+
+        foreach (HexDirection dir in directions)
+        {
+            Hex hex = FindHexByDir(currentHex, dir, allHexes);
+
+            if (unit.UnitType == UnitType.Naval && hex.HexType == HexType.Ocean)
+                hexesAround.Add(hex);
+
+            if (unit.UnitType == UnitType.Land && hex.HexType != HexType.Ocean)
+                hexesAround.Add(hex);
+        }
+        //Debug.Log($"CurHex:{currentHex.X},{currentHex.Y}");
+
+        foreach (Hex hex in hexesAround)
+        {
+            if (hex.MoveCost < unit.MovePoint)
+                return hex;
+        }
+
+        return null;
+    }
+
+    public static Unit CheckIfThisHexHasOtherFactionUnit(Hex hex, Faction faction)
+    {
+        foreach (Unit u in hex.UnitsInHex)
+        {
+            if (u.Faction != faction)
+                return u;
+        }
+        return null;
+    }
+
+    public static bool CheckIfThereIsPlayerUnitAround(Hex[,] hexes, Unit unit)
+    {
+        List<Hex> aroundHexes = new List<Hex>();
+        aroundHexes = GetHexAround(hexes, unit.CurHex);
+
+        foreach (Hex hex in aroundHexes)
+        {
+            foreach (Unit other in hex.UnitsInHex)
+            {
+                if (other.Faction == GameManager.instance.PlayerFaction)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static bool CheckIfHexAroundHasLand(Hex[,] hexes, Hex center)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            Hex hex = FindHexByDir(center, (HexDirection)i, hexes);
+
+            if (hex == null)
+                continue;
+
+            if (hex.HexType != HexType.Ocean)
+                return true;
+        }
+        return false;
+    }
 }

@@ -64,6 +64,22 @@ public class Faction : MonoBehaviour
     private bool isTropicalNatives;
     public bool IsTropicalNatives { get { return isTropicalNatives; } }
 
+    [SerializeField]
+    private int money = 1000;
+    public int Money { get { return money; } set { money = value; } }
+
+    [SerializeField]
+    private Sprite leaderSprite;
+    public Sprite LeaderSprite { get { return leaderSprite; } }
+
+    [SerializeField]
+    private bool metByPlayer = false;
+    public bool MetByPlayer { get { return metByPlayer; } set { metByPlayer = value; } }
+
+    [SerializeField]
+    private bool atPeaceWithPlayer = true;
+    public bool AtPeaceWithPlayer { get { return atPeaceWithPlayer; } set { atPeaceWithPlayer = value; } }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -85,5 +101,6 @@ public class Faction : MonoBehaviour
         unitIcon = data.unitIcon;
         townIcon = data.townIcon;
         isTropicalNatives = data.isTropicalNatives;
+        leaderSprite = data.leaderSprite;
     }
 }

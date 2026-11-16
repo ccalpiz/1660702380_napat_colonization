@@ -34,7 +34,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &6638646053682593989
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -91,6 +91,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!1 &1163532693369091168
 GameObject:
   m_ObjectHideFlags: 0
@@ -197,17 +198,20 @@ MonoBehaviour:
   curPos: {x: 0, y: 0}
   curHex: {fileID: 0}
   targetHex: {fileID: 0}
+  targetUnit: {fileID: 0}
   isMoving: 0
   visible: 0
   unitSprite: {fileID: 6638646053682593989}
   flagSprite: {fileID: 4095814840629939599}
   borderSprite: {fileID: 3643230956228529744}
   gameMgr: {fileID: 0}
+  uiMgr: {fileID: 0}
   navalUnitType: 0
   armed: 0
   cargoHoldNum: 0
   passengers: []
   passengerParent: {fileID: 4793261331611385327}
+  cargoList: []
 --- !u!1 &4793261331611385327
 GameObject:
   m_ObjectHideFlags: 0
@@ -273,7 +277,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3643230956228529744
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -330,6 +334,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!1 &5930204781586567200
 GameObject:
   m_ObjectHideFlags: 0
@@ -364,7 +369,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &4095814840629939599
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -421,3 +426,4 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []

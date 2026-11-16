@@ -16,7 +16,9 @@ public enum UnitStatus
     Clearing,
     Building,
     WorkInField,
-    WorkInTown
+    WorkInTown,
+    Hidden,
+    ToBoard
 }
 
 public class Unit : MonoBehaviour, IPointerClickHandler
@@ -66,6 +68,10 @@ public class Unit : MonoBehaviour, IPointerClickHandler
     public Hex TargetHex { get { return targetHex; } set { targetHex = value; } }
 
     [SerializeField]
+    protected Unit targetUnit;
+    public Unit TargetUnit { get { return targetUnit; } set { targetUnit = value; } }
+
+    [SerializeField]
     protected bool isMoving = false;
     public bool IsMoving { get { return isMoving; } set { isMoving = value; } }
 
@@ -86,8 +92,25 @@ public class Unit : MonoBehaviour, IPointerClickHandler
     [SerializeField]
     protected SpriteRenderer borderSprite;
 
+    [Header("Status")]
+    [SerializeField]
+    protected SpriteRenderer statusSprite;
+    public SpriteRenderer StatusSprite { get { return statusSprite; } }
+
+    [Header("Status Sprites")]
+    [SerializeField]
+    private Sprite[] statusSpritesList;
+    public Sprite[] StatusSpritesList { get { return statusSpritesList; } }
+
+    [SerializeField]
+    protected Hex destinationHex;
+    public Hex DestinationHex { get { return destinationHex; } set { destinationHex = value; } }
+
     [SerializeField]
     protected GameManager gameMgr;
+
+    [SerializeField]
+    protected UIManager uiMgr;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -109,6 +132,39 @@ public class Unit : MonoBehaviour, IPointerClickHandler
             {
                 if (curHex.Town != null)
                     gameMgr.SetupCurrentTown(curHex.Town);
+            }
+        }
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        //Debug.Log("Mouse Click");
+        if (eventData.button == PointerEventData.InputButton.Left)
+        {
+            if (faction == gameMgr.PlayerFaction)
+            {
+                gameMgr.SelectPlayerUnit(this);
+            }
+        }
+
+        if (eventData.button == PointerEventData.InputButton.Right)
+        {
+            if (gameMgr.CheckIfHexIsAdjacent(gameMgr.CurUnit.CurHex, curHex))
+            {
+                if (faction == gameMgr.PlayerFaction)//same side unit
+                    gameMgr.CurUnit.PrepareMoveToHex(curHex);
+                else//diff side unit
+                {
+                    Debug.Log($"{gameMgr.CurUnit} Attacks {unitName}");
+
+                    if (curHex.MoveCost > gameMgr.CurUnit.MovePoint)
+                        return;
+
+                    if (faction.AtPeaceWithPlayer == false)//normal attack
+                        gameMgr.CurUnit.AttackUnit(curHex, this);
+                    else//declare war
+                        gameMgr.ToAttackNationAtPeace(this);
+                }
             }
         }
     }
@@ -143,29 +199,6 @@ public class Unit : MonoBehaviour, IPointerClickHandler
         flagSprite.sortingOrder = 3;
     }
 
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        //Debug.Log("Mouse Click");
-        if (eventData.button == PointerEventData.InputButton.Left)
-        {
-            if (faction == gameMgr.PlayerFaction)
-            {
-                gameMgr.SelectPlayerUnit(this);
-            }
-        }
-
-        if (eventData.button == PointerEventData.InputButton.Right)
-        {
-            if (gameMgr.CheckIfHexIsAdjacent(gameMgr.CurUnit.CurHex, curHex))
-            {
-                if (faction == gameMgr.PlayerFaction)//same side unit
-                    gameMgr.CurUnit.PrepareMoveToHex(curHex);
-                else//diff side unit
-                    Debug.Log($"{gameMgr.CurUnit} Attacks {unitName}");
-            }
-        }
-    }
-
     public virtual void PrepareMoveToHex(Hex target) //Begin to move by RC or AI auto movement
     {
         //Debug.Log($"MoveCost-{target.MoveCost}");
@@ -180,9 +213,11 @@ public class Unit : MonoBehaviour, IPointerClickHandler
 
         if (faction == gameMgr.PlayerFaction)
             gameMgr.LeaveSeenFogAroundUnit(this);
+
+        gameMgr.ShowOtherLandUnits(this);
     }
 
-    protected virtual void StayOnHex(Hex targetHex)
+    public virtual void StayOnHex(Hex targetHex)
     {
         //Old Hex
         curHex.UnitsInHex.Remove(this);
@@ -200,6 +235,7 @@ public class Unit : MonoBehaviour, IPointerClickHandler
             gameMgr.ClearDarkFogAroundUnit(this);
             ToggleBorder(true, Color.green);
         }
+        gameMgr.HideOtherLandUnits(this);
     }
 
     private void MoveToHex()
@@ -219,5 +255,69 @@ public class Unit : MonoBehaviour, IPointerClickHandler
             if (faction == gameMgr.PlayerFaction)
                 gameMgr.ClearDarkFogAroundEveryUnit(faction);
         }
+    }
+
+    public void AttackUnit(Hex target, Unit defender) //Begin to Attack
+    {
+        //Debug.Log($"MoveCost-{target.MoveCost}");
+        //Debug.Log($"UnitMovementP-{movePoint}");
+        //Debug.Log("Attack");
+
+        if (target.MoveCost > movePoint)
+            return;
+
+        //isMoving = true;
+        targetHex = target;
+        targetUnit = defender;
+        //Debug.Log($"Target Pos:{targetHex.transform.position.x},{targetHex.transform.position.y}");
+
+        //Attack Animation
+
+        gameMgr.StartCombat(this, defender);
+    }
+
+    public void ChangeStatusIcon()
+    {
+        if (statusSprite == null)
+            return;
+
+        switch (unitStatus)
+        {
+            case UnitStatus.Clearing:
+                statusSprite.gameObject.SetActive(true);
+                statusSprite.sprite = statusSpritesList[0];
+                break;
+            case UnitStatus.Building:
+                statusSprite.gameObject.SetActive(true);
+                statusSprite.sprite = statusSpritesList[1];
+                break;
+            default:
+                statusSprite.gameObject.SetActive(false);
+                statusSprite.sprite = null;
+                break;
+        }
+    }
+
+    public void CheckMoveToDestination()
+    {
+        if (destinationHex == null)
+            return;
+
+        Hex nextHex = null;
+
+        //Find destination hex
+
+        //Debug.Log($"dest:{destinationHex.X}, {destinationHex.Y}");
+        nextHex = HexCalculator.FindNextHexToGo(this, CurHex, destinationHex, gameMgr.AllHexes);
+
+        if (nextHex == null)
+            return;
+
+        PrepareMoveToHex(nextHex);
+    }
+
+    public void SetUnitDestination(Hex hex)
+    {
+        destinationHex = hex;
     }
 }

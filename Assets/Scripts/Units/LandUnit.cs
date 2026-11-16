@@ -14,7 +14,22 @@ public enum LandUnitType
     Lumberjacks,
     Carpenters,
     OreMiners,
-    Blacksmiths
+    Blacksmiths,
+    SugarPlanters,
+    TobaccoPlanters,
+    CottonPlanters,
+    FurTrappers,
+    SilverMiners,
+    Ranchers,
+    RumDistillers,
+    Tobacconists,
+    CottonWeavers,
+    FurTraders,
+    Missionaries,
+    FirebrandPreachers,
+    Statesmen,
+    Gunsmiths,
+    PettyCriminals
 }
 
 public class LandUnit : Unit
@@ -75,9 +90,10 @@ public class LandUnit : Unit
         }
     }
 
-    public void UnitInit(GameManager gameMgr, Faction fact, LandUnitData data)
+    public void UnitInit(GameManager gameMgr, UIManager uiMgr, Faction fact, LandUnitData data)
     {
         base.gameMgr = gameMgr;
+        base.uiMgr = uiMgr;
         faction = fact;
         flagSprite.sprite = fact.ShieldIcon;
 
@@ -117,6 +133,9 @@ public class LandUnit : Unit
         if (unitStatus == UnitStatus.Clearing)
             return;
 
+        if (landUnitType != LandUnitType.HardyPioneers)
+            return;
+
         if (curHex.HexType == HexType.Ocean || curHex.HexType == HexType.Mountains
             || curHex.HexType == HexType.Hills || !curHex.HasForest)
         {
@@ -127,11 +146,14 @@ public class LandUnit : Unit
         {
             //warning not enough tools
             Debug.Log("Not enough tools");
+            uiMgr.ShowColonyNotEnoughToolsText(toolsNum);
         }
         else
         {
+            Debug.Log("Clearing");
             unitStatus = UnitStatus.Clearing;
             toolsNum -= 20;
+            ChangeStatusIcon();
         }
     }
 
@@ -140,22 +162,34 @@ public class LandUnit : Unit
         if (unitStatus == UnitStatus.Building || curHex.HasTown)
             return;
 
+        if (landUnitType != LandUnitType.HardyPioneers)
+            return;
+
         Debug.Log("Build Settlement");
 
         if (curHex.HexType == HexType.Ocean || curHex.HexType == HexType.Mountains || curHex.HasForest)
         {
             //warning has to be cleared land
             Debug.Log("Must be on Cleared Land");
+            uiMgr.ShowColonyClearLandText();
         }
         else if (toolsNum < 20)
         {
             //warning not enough tools
             Debug.Log("Not enough tools");
+            uiMgr.ShowColonyNotEnoughToolsText(toolsNum);
+        }
+        else if (gameMgr.CheckIfAroundHexHasTown(curHex))
+        {
+            Debug.Log("Must not be next to another town or village");
+            uiMgr.ShowColonyHasOtherTownAroundText();
         }
         else
         {
+            Debug.Log("Building");
             unitStatus = UnitStatus.Building;
             toolsNum -= 20;
+            ChangeStatusIcon();
         }
     }
 
@@ -188,12 +222,20 @@ public class LandUnit : Unit
         unitStatus = UnitStatus.OnBoard;
     }
 
-    protected override void StayOnHex(Hex hex)
+    public override void StayOnHex(Hex hex)
     {
         base.StayOnHex(hex);
 
+        if (destinationHex != null)
+            CheckMoveToDestination();
+
+        gameMgr.CheckUnmetFaction(this);
+
+        if (faction == gameMgr.PlayerFaction)
+            gameMgr.CheckIfFirstTimeMakeLandfall(curHex);
+
         if (hex.HexType != HexType.Ocean)
-            return;
+            return; //after this will be boarding ship process
 
         //Check again if this ship can be boarded
         NavalUnit ship = gameMgr.CheckIfHexHasOurShipToBoard(hex);

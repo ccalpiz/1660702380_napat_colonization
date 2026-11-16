@@ -10,4 +10,5 @@ public class FactionData : ScriptableObject
     public Sprite unitIcon;
     public Sprite townIcon;
     public bool isTropicalNatives;
+    public Sprite leaderSprite;
 }

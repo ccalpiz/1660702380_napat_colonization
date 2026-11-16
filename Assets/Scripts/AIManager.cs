@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
 public class AIManager : MonoBehaviour
 {
@@ -24,15 +24,21 @@ public class AIManager : MonoBehaviour
 
     private void AutoMoveToHex(Unit unit)
     {
-        int n = Random.Range(0, 6);
-
-        Hex toGoHex = HexCalculator.FindHexByDir(unit.CurHex, (HexDirection)n, GameManager.instance.AllHexes);
-
-        if (toGoHex == null)
-            return;
-
         unit.ShowHideSprite(true);
-        unit.PrepareMoveToHex(toGoHex);
+
+        if (unit.DestinationHex != null)
+            unit.CheckMoveToDestination();
+        else if (unit.Faction.AtPeaceWithPlayer == false)
+        {
+            Unit playerUnit = TryToFindPlayerUnit(unit);
+
+            if (playerUnit != null)
+                unit.AttackUnit(playerUnit.CurHex, playerUnit);
+            else
+                RandomMoveOneHex(unit);
+        }
+        else
+            RandomMoveOneHex(unit);
     }
 
     private IEnumerator EnemyUnitMoves()
@@ -44,18 +50,17 @@ public class AIManager : MonoBehaviour
             if (faction == GameManager.instance.PlayerFaction)
                 continue;
 
-
-            foreach (Unit unit in faction.Units)
+            for (int i = 0; i < faction.Units.Count; i++)
             {
-                GameManager.instance.SelectAiUnit(unit);
+                GameManager.instance.SelectAiUnit(faction.Units[i]);
 
-                if (unit.Visible)
-                    CameraController.instance.MoveCamera(unit.CurPos);
+                if (faction.Units[i].Visible)
+                    CameraController.instance.MoveCamera(faction.Units[i].CurPos);
 
-                if (unit.UnitStatus == UnitStatus.OnBoard)
+                if (faction.Units[i].UnitStatus == UnitStatus.OnBoard)
                     continue;
                 //Debug.Log("Move");
-                AutoMoveToHex(unit);
+                AutoMoveToHex(faction.Units[i]);
 
                 yield return new WaitForSeconds(0.1f);
             }
@@ -67,8 +72,7 @@ public class AIManager : MonoBehaviour
         //Debug.Log("Release Mouse");
         //Debug.Log("New Turn");
 
-        GameManager.instance.PlayerTurn = true;
-        GameManager.instance.SelectPlayerFirstUnit();
+        GameManager.instance.StartNewTurn();
     }
 
     public void StartAITurn()
@@ -76,5 +80,79 @@ public class AIManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         StartCoroutine(EnemyUnitMoves());
+    }
+
+    public void RandomMoveOneHex(Unit unit)
+    {
+        Hex anyHex = null;
+
+        int n = Random.Range(0, 6);
+
+        //Move
+        anyHex = HexCalculator.FindHexByDir(unit.CurHex, (HexDirection)n, GameManager.instance.AllHexes);
+
+        if (anyHex == null)
+            return;
+
+        Unit otherUnit = HexCalculator.CheckIfThisHexHasOtherFactionUnit(anyHex, unit.Faction);
+
+        if (otherUnit == null) //No other faction's unit in that hex
+        {
+            AIUnitPrepareToMove(unit, anyHex);
+        }
+        else if (otherUnit.Faction == GameManager.instance.PlayerFaction)//that other unit is player
+        {
+            if (unit.Faction.AtPeaceWithPlayer)
+                AIUnitStayOnHex(unit);
+            else
+                unit.AttackUnit(anyHex, otherUnit);
+        }
+        else //other AI faction's unit in that hex
+        {
+            unit.AttackUnit(anyHex, otherUnit);//attack other AI
+        }
+    }
+
+    private void AIUnitPrepareToMove(Unit unit, Hex targetHex)
+    {
+        switch (unit.UnitType)
+        {
+            case UnitType.Land:
+                LandUnit landUnit = (LandUnit)unit;
+                landUnit.PrepareMoveToHex(targetHex);
+                break;
+            case UnitType.Naval:
+                NavalUnit navalUnit = (NavalUnit)unit;
+                navalUnit.PrepareMoveToHex(targetHex);
+                break;
+        }
+    }
+
+    private void AIUnitStayOnHex(Unit unit)
+    {
+        switch (unit.UnitType)
+        {
+            case UnitType.Land:
+                LandUnit landUnit = (LandUnit)unit;
+                landUnit.StayOnHex(landUnit.CurHex);
+                break;
+            case UnitType.Naval:
+                NavalUnit navalUnit = (NavalUnit)unit;
+                navalUnit.StayOnHex(navalUnit.CurHex);
+                break;
+        }
+    }
+
+    private Unit TryToFindPlayerUnit(Unit unit)
+    {
+        Unit otherUnit = HexCalculator.CheckIfThisHexHasOtherFactionUnit(unit.CurHex, unit.Faction);
+
+        if (otherUnit == null)
+            return null;
+
+        if (otherUnit.Faction == GameManager.instance.PlayerFaction)
+            return otherUnit;
+        else
+            return null;
     }
 }

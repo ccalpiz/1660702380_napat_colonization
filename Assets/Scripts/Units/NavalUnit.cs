@@ -32,6 +32,10 @@ public class NavalUnit : Unit
     private GameObject passengerParent;
     public GameObject PassengerParent { get { return passengerParent; } }
 
+    [SerializeField]
+    private List<Cargo> cargoList = new List<Cargo>();
+    public List<Cargo> CargoList { get { return cargoList; } set { cargoList = value; } }
+
     public void UnitInit(GameManager gameMgr, Faction fact, NavalUnitData data)
     {
         base.gameMgr = gameMgr;
@@ -56,11 +60,17 @@ public class NavalUnit : Unit
 
         if (targetHex.HexType != HexType.Ocean)
         {
-            StayOnHex(curHex);
+            if (targetHex.HasTown)
+            {
+                if (targetHex.Town.Faction != gameMgr.PlayerFaction)
+                    StayOnHex(curHex);
+            }
+            else //No Town
+                StayOnHex(curHex);
         }
     }
 
-    protected override void StayOnHex(Hex hex)
+    public override void StayOnHex(Hex hex)
     {
         base.StayOnHex(hex);
 
@@ -74,5 +84,41 @@ public class NavalUnit : Unit
             passenger.CurHex = hex;
             passenger.CurPos = hex.Pos;
         }
+
+        gameMgr.CheckUnmetFaction(this);
+
+        gameMgr.CheckShipToEurope();
+
+        if (faction == gameMgr.PlayerFaction)
+            gameMgr.CheckIfFoundNewLand(hex);
+
+        if (destinationHex != null)
+            CheckMoveToDestination();
+    }
+
+    public int AddCargo(int id, Cargo newCargo)
+    {
+        //Debug.Log($"i:{id}, count:{cargoList.Count}");
+
+        if (cargoList.Count < cargoHoldNum) //a space left
+        {
+            cargoList.Add(new Cargo(newCargo.ProductID, newCargo.Quantity));
+            return 0;
+        }
+        //all cargo taken, check if there is space
+        else if (cargoList[id].ProductID == newCargo.ProductID)
+        {
+            cargoList[id].Quantity += newCargo.Quantity;
+            newCargo.Quantity = 0;
+
+            if (cargoList[id].Quantity > 100)
+            {
+                int cargoLeft = cargoList[id].Quantity - 100;
+                cargoList[id].Quantity = 100;
+                return cargoLeft;
+            }
+        }
+        //Debug.Log("Added Cargo");
+        return newCargo.Quantity;
     }
 }

@@ -233,7 +233,19 @@ public class Hex : MonoBehaviour, IPointerClickHandler
             if (gameMgr.CheckIfHexIsAdjacent(gameMgr.CurUnit.CurHex, this))
             {
                 //Debug.Log("Adjacent-True");
-                gameMgr.CurUnit.PrepareMoveToHex(this);
+
+                Unit target = 
+                    HexCalculator.CheckIfThisHexHasOtherFactionUnit(this, gameMgr.CurUnit.Faction);
+                
+                if (target != null)
+                {
+                    if (target.Faction.AtPeaceWithPlayer == false)//normal attack
+                        gameMgr.CurUnit.AttackUnit(target.CurHex, target);
+                    else//declare war
+                        gameMgr.ToAttackNationAtPeace(target);
+                }
+                else
+                    gameMgr.CurUnit.PrepareMoveToHex(this);
             }
         }
     }
