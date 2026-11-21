@@ -15,6 +15,6 @@ MonoBehaviour:
   id: 11
   productName: Cloth
   icons:
-  - {fileID: 21300000, guid: 2a1eed37cf9a77d4993c422a933ef9fa, type: 3}
+  - {fileID: 21300000, guid: fcda14cc8b43434888288a4738a057d3, type: 3}
   startBid: 11
   startAsk: 12
