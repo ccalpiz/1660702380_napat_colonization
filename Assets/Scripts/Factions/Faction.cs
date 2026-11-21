@@ -8,13 +8,13 @@ public enum Nation
     Spain,
     Netherland,
     Portugal,
-    Sioux,
-    Tupi,
-    Iroquois,
+    Inuit,
+    Taino,
+    Haudenosaunee,
     Apache,
-    Aztec,
-    Huron,
-    Maya,
+    Mexica,
+    Wendat,
+    Pueblo,
     Inca
 }
 

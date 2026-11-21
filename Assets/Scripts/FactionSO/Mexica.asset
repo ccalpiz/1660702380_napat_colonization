@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 429d88d3deb48ff488420610fa895bd1, type: 3}
+  m_Name: Mexica
+  m_EditorClassIdentifier: Assembly-CSharp::FactionData
+  nation: 9
+  isEuropean: 0
+  flagIcon: {fileID: 21300000, guid: 963a3f413c610364691f68bdbfcae284, type: 3}
+  shieldIcon: {fileID: 21300000, guid: 342875c5e607db242a4fc31439d0c02d, type: 3}
+  unitIcon: {fileID: 21300000, guid: b7bcdfeb68acf9943bd06f95339fdd54, type: 3}
+  townIcon: {fileID: 21300000, guid: 26525daa09ab0a94297e74b29226933d, type: 3}
+  isTropicalNatives: 1
+  leaderSprite: {fileID: 21300000, guid: b7bcdfeb68acf9943bd06f95339fdd54, type: 3}

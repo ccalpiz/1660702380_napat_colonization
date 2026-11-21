@@ -52,6 +52,8 @@ public class AIManager : MonoBehaviour
 
             for (int i = 0; i < faction.Units.Count; i++)
             {
+                if (faction.Units[i] == null) continue;   // unit destroyed earlier this turn
+
                 GameManager.instance.SelectAiUnit(faction.Units[i]);
 
                 if (faction.Units[i].Visible)

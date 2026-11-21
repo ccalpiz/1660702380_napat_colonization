@@ -806,6 +806,8 @@ public class GameManager : MonoBehaviour
 
     public void SetupDeadUnit(Unit deadUnit)
     {
+        if (deadUnit == null) return;   // already destroyed by another combat during the 4s result delay
+
         Faction faction = deadUnit.Faction;
         Hex hex = deadUnit.CurHex;
 
@@ -815,6 +817,8 @@ public class GameManager : MonoBehaviour
 
             foreach (LandUnit passenger in ship.Passengers)
             {
+                if (passenger == null) continue;
+
                 if (hex.UnitsInHex.Contains(passenger))
                     hex.UnitsInHex.Remove(passenger);
 
@@ -828,8 +832,7 @@ public class GameManager : MonoBehaviour
 
         faction.Units.Remove(deadUnit);
 
-        if (deadUnit.gameObject != null)
-            Destroy(deadUnit.gameObject);
+        Destroy(deadUnit.gameObject);
     }
 
     private void ShowMilitaryResultDialog(Unit winner, Unit loser)
@@ -857,6 +860,8 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(seconds);
         Debug.Log("Hide Combat Dialog");
         DialogManager.instance.ToggleCombatPanel(false);
+
+        if (winner == null || loser == null) yield break;   // one side was removed by another fight meanwhile
 
         //loser dies animation
         Debug.Log("Animation");
