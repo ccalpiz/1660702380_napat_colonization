@@ -83,7 +83,9 @@ public class Hex : MonoBehaviour, IPointerClickHandler
 
     [SerializeField]
     private int[] resourceYield;
-    public int[] ResourceYield { get { return resourceYield; } set { resourceYield = value; } }
+    [SerializeField]
+    private int[] forestYield;
+    public int[] ResourceYield { get { return hasForest ? forestYield : resourceYield; } set { resourceYield = value; } }
 
     [Header("Special")]
     [SerializeField]
@@ -154,6 +156,7 @@ public class Hex : MonoBehaviour, IPointerClickHandler
         terrainSprites = gameMgr.HexData[i].terrainSprites;
         forestSprites = gameMgr.HexData[i].forestSprites;
         resourceYield = gameMgr.HexData[i].resourceYield;
+        forestYield = gameMgr.HexData[i].forestYield;
         moveCost = gameMgr.HexData[i].moveCost;
 
         SetSortingOrder();

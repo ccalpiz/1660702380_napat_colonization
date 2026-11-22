@@ -184,18 +184,7 @@ public class TerrainSlot : MonoBehaviour, IDropHandler
     {
         for (int i = 0; i < 8; i++)
         {
-            normalYield[i] = hex.ResourceYield[i];
-
-            if (i == 4 || i == 5) //Fur or Lumber
-            {
-                if (!hex.HasForest)
-                    normalYield[i] = 0;
-            }
-            else //Agriculture
-            {
-                if (hex.HasForest)
-                    normalYield[i] -= 2; //Reduce agriculture
-            }
+            normalYield[i] = hex.ResourceYield[i]; //forest vs cleared values come from HexData (forestYield / resourceYield)
 
             if (hex.HasTown)
                 normalYield[i] = Mathf.CeilToInt(normalYield[i] / 2f);

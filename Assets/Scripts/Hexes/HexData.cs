@@ -9,5 +9,6 @@ public class HexData : ScriptableObject
     public Sprite[] forestSprites;
 
     public int[] resourceYield = new int[8];
+    public int[] forestYield = new int[8]; //used while the hex is forested (Week 3 forest stats)
     public int moveCost;
 }

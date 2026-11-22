@@ -643,7 +643,7 @@ public class UIManager : MonoBehaviour
 
     public void UpdateMoneyText()
     {
-        moneyText.text = $"{GameManager.instance.PlayerFaction.Money}";
+        moneyText.text = $"Year {GameManager.instance.Year}   •   Gold {GameManager.instance.PlayerFaction.Money}";
     }
 
     public void UpdateMoneyEuropeText()
