@@ -232,6 +232,8 @@ public class Hex : MonoBehaviour, IPointerClickHandler
     {
         if (eventData.button == PointerEventData.InputButton.Right)
         {
+            if (gameMgr.CurUnit == null || gameMgr.CurUnit.CurHex == null) //e.g. the selected ship just sailed to Europe
+                return;
             //Debug.Log($"Right Click-Hex:{x}, {y}");
             if (gameMgr.CheckIfHexIsAdjacent(gameMgr.CurUnit.CurHex, this))
             {

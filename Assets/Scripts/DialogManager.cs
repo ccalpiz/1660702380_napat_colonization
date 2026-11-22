@@ -11,6 +11,8 @@ public class DialogManager : MonoBehaviour
     [SerializeField]
     private GameObject[] eventPanels;
 
+    private System.Collections.Generic.List<int> queuedEvents = new System.Collections.Generic.List<int>();
+
     public static DialogManager instance;
 
     void Awake()
@@ -91,11 +93,11 @@ public class DialogManager : MonoBehaviour
     public void AttackAfterDeclareWar()
     {
         ToggleArmyDialog(false);
-        if (GameManager.instance.CurTarget != null)
-        {
-            Unit defender = GameManager.instance.CurTarget;
-            GameManager.instance.CurUnit.AttackUnit(defender.CurHex, defender);
-        }
+        Unit defender = GameManager.instance.CurTarget;
+        Unit attacker = GameManager.instance.CurUnit;
+        GameManager.instance.CurTarget = null; //this OK button also closes the combat result, which must not attack again
+        if (defender != null && attacker != null) //attacker is gone if it just died in combat
+            attacker.AttackUnit(defender.CurHex, defender);
     }
 
     public void ShowArmyCombatResult(Unit winner, Unit loser)
@@ -250,6 +252,29 @@ public class DialogManager : MonoBehaviour
     public void ToggleMakeLandfallEvent(bool flag)
     {
         eventPanels[1].SetActive(flag);
+    }
+
+    public void ToggleFirstColonyEvent(bool flag)
+    {
+        eventPanels[2].SetActive(flag);
+    }
+
+    public void ToggleFirstCargoEvent(bool flag)
+    {
+        eventPanels[3].SetActive(flag);
+    }
+
+    public void QueueEvent(int id) //shown by ShowQueuedEvents at the start of the player's turn
+    {
+        if (!queuedEvents.Contains(id))
+            queuedEvents.Add(id);
+    }
+
+    public void ShowQueuedEvents()
+    {
+        foreach (int id in queuedEvents)
+            eventPanels[id].SetActive(true);
+        queuedEvents.Clear();
     }
     #endregion
 }

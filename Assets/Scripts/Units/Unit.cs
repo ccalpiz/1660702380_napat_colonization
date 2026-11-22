@@ -149,6 +149,8 @@ public class Unit : MonoBehaviour, IPointerClickHandler
 
         if (eventData.button == PointerEventData.InputButton.Right)
         {
+            if (gameMgr.CurUnit == null || gameMgr.CurUnit.CurHex == null) //selected ship is away in Europe
+                return;
             if (gameMgr.CheckIfHexIsAdjacent(gameMgr.CurUnit.CurHex, curHex))
             {
                 if (faction == gameMgr.PlayerFaction)//same side unit

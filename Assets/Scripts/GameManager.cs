@@ -124,6 +124,8 @@ public class GameManager : MonoBehaviour
     private Faction curForeignFaction; //cur Faction that player's meeting
     public Faction CurForeignFaction { get { return curForeignFaction; } set { curForeignFaction = value; } }
 
+    private bool foundFirstColony = false; //has player founded a town yet? (shows the First Colony event once)
+
     private bool foundNewLand = false; //has player found a new world?
     public bool FoundNewLand { get { return foundNewLand; } set { foundNewLand = value; } }
 
@@ -477,6 +479,9 @@ public class GameManager : MonoBehaviour
 
     private void SelectNextPlayerUnit()
     {
+        if (playerFaction.Units.Count == 0) //every unit is gone
+            return;
+
         int i = FindIndexOfCurUnit();
         i++;
 
@@ -500,6 +505,12 @@ public class GameManager : MonoBehaviour
         curHex.Town = town;
 
         curTown = town;
+
+        if (faction == playerFaction && foundFirstColony == false)
+        {
+            foundFirstColony = true;
+            DialogManager.instance.QueueEvent(2); //First Colony
+        }
     }
 
     private void GenerateAllNativeTowns()
@@ -674,6 +685,7 @@ public class GameManager : MonoBehaviour
         EuropeManager.instance.ConsumeEUStock();
 
         DialogManager.instance.ToggleAiMoveDialog(false);
+        DialogManager.instance.ShowQueuedEvents();
     }
 
     public void HideOtherLandUnits(Unit thisUnit)
@@ -831,6 +843,9 @@ public class GameManager : MonoBehaviour
             hex.UnitsInHex.Remove(deadUnit);
 
         faction.Units.Remove(deadUnit);
+
+        if (deadUnit == curUnit && playerTurn) //our selected unit died: select another one so clicks keep working
+            SelectPlayerFirstUnit();
 
         Destroy(deadUnit.gameObject);
     }

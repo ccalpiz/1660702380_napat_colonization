@@ -91,6 +91,8 @@ public class Town : MonoBehaviour, IPointerClickHandler
         if (eventData.button == PointerEventData.InputButton.Right)
         {
             //Debug.Log($"To Move Hex:{curHex.X}, {curHex.Y}");
+            if (gameManager.CurUnit == null || gameManager.CurUnit.CurHex == null) //selected ship is away in Europe
+                return;
             if (gameManager.CheckIfHexIsAdjacent(gameManager.CurUnit.CurHex, curHex))
             {
                 if (faction == gameManager.PlayerFaction)//same side unit

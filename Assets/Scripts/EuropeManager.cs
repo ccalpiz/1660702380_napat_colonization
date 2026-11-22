@@ -6,6 +6,8 @@ public class EuropeManager : MonoBehaviour
     private const int EUROPE_DISTANCE = 3;
 
     [SerializeField] //Ships To Europe
+    private bool firstCargoShown = false;
+
     private List<ShipInTransit> shipsToEurope = new List<ShipInTransit>();
     public List<ShipInTransit> ShipsToEurope { get { return shipsToEurope; } set { shipsToEurope = value; } }
 
@@ -91,6 +93,13 @@ public class EuropeManager : MonoBehaviour
             {
                 shipsInEurope.Add(shipInTransit.Ship);
                 shipsReachEurope.Add(shipInTransit);
+
+                //First player ship to bring goods home shows the First Cargo event once
+                if (firstCargoShown == false && shipInTransit.Ship.Faction == GameManager.instance.PlayerFaction && shipInTransit.Ship.CargoList.Count > 0)
+                {
+                    firstCargoShown = true;
+                    DialogManager.instance.QueueEvent(3); //First Cargo
+                }
 
                 //Passenger arrives Europe
                 foreach (LandUnit passenger in shipInTransit.Ship.Passengers)
