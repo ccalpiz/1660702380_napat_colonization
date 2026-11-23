@@ -192,6 +192,12 @@ public class DialogManager : MonoBehaviour
         dialogs[6].ShowNotiText(text);
     }
 
+    public void ShowColonyFoodText(string text)
+    {
+        ToggleColonyDialog(true);
+        dialogs[6].ShowNotiText(text);
+    }
+
     public void ShowColonyNotifyBuildSettlement()
     {
         ToggleColonyDialog(true);

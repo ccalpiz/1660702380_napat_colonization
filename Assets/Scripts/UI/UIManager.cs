@@ -51,6 +51,12 @@ public class UIManager : MonoBehaviour
     private TMP_Text foodText;
 
     [SerializeField]
+    private TMP_Text foodStatusText; //eaten / stored / net food line above the food icons
+
+    [SerializeField]
+    private BuildingSlot[] buildingSlots; //the 6 workshops in the town panel
+
+    [SerializeField]
     private List<GameObject> foodIconList = new List<GameObject>();
 
     [SerializeField]
@@ -280,6 +286,7 @@ public class UIManager : MonoBehaviour
         //Working Workers
         SetupUnitDragWorkingInTerrain();
         SetupYieldInTerrain();
+        SetupUnitDragWorkingInBuildings(curHex.Town);
 
         //Town Info
         UpdateTotalFoodIcons();
@@ -348,6 +355,11 @@ public class UIManager : MonoBehaviour
                 n, GameManager.instance.ProductData[i].productName);
 
             btnYieldTexts[i].text = s;
+
+            //dim choices that yield nothing on this tile (still clickable)
+            CanvasGroup row = btnYieldTexts[i].transform.parent.GetComponent<CanvasGroup>();
+            if (row != null)
+                row.alpha = n > 0 ? 1f : 0.4f;
         }
     }
 
@@ -372,8 +384,34 @@ public class UIManager : MonoBehaviour
         blockImage.SetActive(false);
         professionPanel.SetActive(false);
 
-        if (currentSlot.Hex.YieldID == 0)
-            UpdateTotalFoodIcons();
+        UpdateTotalFoodIcons(); //any new worker also eats, so refresh the food line
+        RefreshWorkshops(); //new raw yield can feed a workshop
+    }
+
+    public void RefreshWorkshops()
+    {
+        if (GameManager.instance.CurTown == null)
+            return;
+        int[] made = GameManager.instance.CurTown.RunWorkshops(false);
+        foreach (BuildingSlot slot in buildingSlots)
+            slot.UpdateText(made[slot.Workshop]);
+    }
+
+    private void SetupUnitDragWorkingInBuildings(Town town)
+    {
+        foreach (BuildingSlot slot in buildingSlots)
+        {
+            foreach (LandUnit worker in town.WorkshopWorkers(slot.Workshop))
+            {
+                GameObject unitObj = Instantiate(unitDragPrefab, slot.WorkerParent);
+                allUnitDrags.Add(unitObj);
+
+                UnitDrag unitDrag = unitObj.GetComponent<UnitDrag>();
+                unitDrag.UnitInit(worker);
+                unitDrag.IconParent = slot.WorkerParent;
+            }
+        }
+        RefreshWorkshops();
     }
 
     public void SetupParentSpacing(int n, Transform parent, int iconWidth, int parentWidth)
@@ -419,6 +457,14 @@ public class UIManager : MonoBehaviour
             foodIconList.Add(iconobj);
         }
         SetupParentSpacing(GameManager.instance.CurTown.TotalYieldThisTurn[0], foodParent, 64, 300);
+
+        if (foodStatusText != null)
+        {
+            Town town = GameManager.instance.CurTown;
+            int net = town.NetFoodPerTurn();
+            string col = net < 0 ? "#E07050" : "#F6D68C";
+            foodStatusText.text = $"Eaten {town.ColonistCount() * Town.FOOD_PER_COLONIST}   Stored {town.Warehouse[0]}/{Town.FOOD_TO_GROW}   <color={col}>{net:+0;-0;0}/turn</color>";
+        }
     }
 
     public void CheckActiveUIPanel()

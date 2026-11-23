@@ -38,6 +38,10 @@ public class LandUnit : Unit
     private LandUnitType landUnitType;
     public LandUnitType LandUnitType { get { return landUnitType; } set { landUnitType = value; } }
 
+    [System.NonSerialized] //not saved: a stale 0 would put every unit in the first workshop
+    private int workshop = -1; //index into Town.WORKSHOP_IN/OUT, -1 = not in a building
+    public int Workshop { get { return workshop; } set { workshop = value; } }
+
     [SerializeField]
     private int toolsNum; //max 100
     public int ToolsNum { get { return toolsNum; } set { toolsNum = value; } }

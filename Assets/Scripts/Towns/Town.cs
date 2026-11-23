@@ -79,6 +79,126 @@ public class Town : MonoBehaviour, IPointerClickHandler
         }
     }
 
+    //Workshops: a worker turns 3 raw goods into 3 finished goods per turn, an expert 6 (same as the Week 9 charts)
+    //0 Rum Distiller, 1 Tobacconist, 2 Weaver, 3 Fur Trader, 4 Blacksmith, 5 Armory (runs after the Blacksmith, so new tools count)
+    public static readonly int[] WORKSHOP_IN = { 1, 2, 3, 4, 6, 14 };    //Sugar, Tobacco, Cotton, Furs, Ore, Tools
+    public static readonly int[] WORKSHOP_OUT = { 9, 10, 11, 12, 14, 15 }; //Rum, Cigar, Cloth, Coat, Tools, Muskets
+    public static readonly LandUnitType[] WORKSHOP_EXPERT = { LandUnitType.RumDistillers, LandUnitType.Tobacconists,
+        LandUnitType.CottonWeavers, LandUnitType.FurTraders, LandUnitType.Blacksmiths, LandUnitType.Gunsmiths };
+    public const int WORKSHOP_BASE = 3;
+    public const int MAX_WORKSHOP_WORKERS = 3;
+
+    public System.Collections.Generic.List<LandUnit> WorkshopWorkers(int w)
+    {
+        var list = new System.Collections.Generic.List<LandUnit>();
+        foreach (Unit unit in curHex.UnitsInHex)
+            if (unit is LandUnit land && land.UnitStatus == UnitStatus.WorkInField && land.Workshop == w)
+                list.Add(land);
+        return list;
+    }
+
+    public int WorkshopCapacity(int w)
+    {
+        int n = 0;
+        foreach (LandUnit worker in WorkshopWorkers(w))
+            n += worker.LandUnitType == WORKSHOP_EXPERT[w] ? WORKSHOP_BASE * 2 : WORKSHOP_BASE;
+        return n;
+    }
+
+    //apply = true: end of turn, after AccumulateToWarehouse. apply = false: preview for the town panel (stock + this turn's yield).
+    //Each workshop makes as much as the stored raw goods allow.
+    public int[] RunWorkshops(bool apply)
+    {
+        int[] stock = apply ? warehouse : (int[])warehouse.Clone();
+        if (!apply)
+            for (int i = 0; i < stock.Length; i++)
+                stock[i] += totalYieldThisTurn[i];
+
+        int[] made = new int[WORKSHOP_IN.Length];
+        for (int w = 0; w < made.Length; w++)
+        {
+            made[w] = Mathf.Min(WorkshopCapacity(w), Mathf.Max(0, stock[WORKSHOP_IN[w]]));
+            stock[WORKSHOP_IN[w]] -= made[w];
+            stock[WORKSHOP_OUT[w]] += made[w];
+        }
+        return made;
+    }
+
+    public const int FOOD_PER_COLONIST = 2;
+    public const int FOOD_TO_GROW = 200;
+
+    public int ColonistCount()
+    {
+        int n = 0;
+        foreach (Unit unit in curHex.UnitsInHex)
+            if (unit.UnitType == UnitType.Land && unit.UnitStatus == UnitStatus.WorkInField)
+                n++;
+        return n;
+    }
+
+    public int NetFoodPerTurn() { return totalYieldThisTurn[0] - ColonistCount() * FOOD_PER_COLONIST; }
+
+    //Runs after AccumulateToWarehouse (food already added). Returns a message for the player, or null.
+    public string ConsumeFood()
+    {
+        warehouse[0] -= ColonistCount() * FOOD_PER_COLONIST;
+
+        if (warehouse[0] >= FOOD_TO_GROW)
+        {
+            warehouse[0] -= FOOD_TO_GROW;
+            gameManager.SpawnFreeColonist(this);
+            return "Our colony has plenty of food. A new <color=yellow>Free Colonist</color> has joined the settlement.";
+        }
+
+        if (warehouse[0] < 0)
+        {
+            warehouse[0] = 0;
+            string dead = StarveOneColonist();
+            if (dead != null)
+                return $"Famine! A <color=yellow>{dead}</color> has starved to death. Put more colonists on food tiles.";
+        }
+        else if (warehouse[0] + NetFoodPerTurn() < 0)
+            return $"Food is running out. Our colony needs <color=yellow>{-NetFoodPerTurn()}</color> more food each turn, or a colonist will starve next turn.";
+
+        return null;
+    }
+
+    private string StarveOneColonist()
+    {
+        foreach (Hex hex in HexCalculator.GetHexAroundToArray(gameManager.AllHexes, curHex))
+        {
+            if (hex == null || hex.Labor == null || hex.Labor.Faction != faction)
+                continue;
+
+            Unit worker = hex.Labor;
+            if (hex.YieldID != -1) //remove this worker's output, same formula as TerrainSlot.ConvertNormalToActualYield
+            {
+                int amount = Mathf.Max(0, hex.ResourceYield[hex.YieldID]);
+                if (gameManager.GetIfProductIDDoubledFromExpert(hex) == hex.YieldID)
+                    amount *= 2;
+                totalYieldThisTurn[hex.YieldID] = Mathf.Max(0, totalYieldThisTurn[hex.YieldID] - amount);
+            }
+            hex.Labor = null;
+            hex.YieldID = -1;
+
+            string name = worker.UnitName;
+            gameManager.SetupDeadUnit(worker);
+            return name;
+        }
+
+        for (int w = 0; w < WORKSHOP_IN.Length; w++) //no field workers left: a workshop worker starves
+        {
+            var workers = WorkshopWorkers(w);
+            if (workers.Count == 0)
+                continue;
+            string name = workers[0].UnitName;
+            workers[0].Workshop = -1;
+            gameManager.SetupDeadUnit(workers[0]);
+            return name;
+        }
+        return null;
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
         //Debug.Log("Mouse Click");

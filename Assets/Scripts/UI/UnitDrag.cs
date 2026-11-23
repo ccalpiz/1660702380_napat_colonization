@@ -100,6 +100,9 @@ public class UnitDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             terrainSlot.Hex.YieldID = -1;//no yield
             terrainSlot = null;
         }
+
+        landUnit.Workshop = -1; //every drop target calls this, so it also takes the unit out of its workshop
+        uiMgr.RefreshWorkshops(); //raw input or worker count may have changed
     }
 
     public void WorkAtNewTerrainSlot(TerrainSlot terrainSlot)

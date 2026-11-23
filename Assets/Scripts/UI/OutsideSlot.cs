@@ -30,5 +30,6 @@ public class OutsideSlot : MonoBehaviour, IDropHandler
 
         unitDrag.QuitOldTerrainSlot(); //old slot remove this labor
         unitDrag.LandUnit.UnitStatus = UnitStatus.None;
+        UIManager.instance.UpdateTotalFoodIcons(); //one less mouth to feed
     }
 }

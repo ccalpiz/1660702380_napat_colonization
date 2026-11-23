@@ -503,6 +503,8 @@ public class GameManager : MonoBehaviour
 
         curHex.HasTown = true;
         curHex.Town = town;
+        if (curHex.HasForest)
+            curHex.ClearForest(); //native villages spawn at random, often in forest: a village stands in a clearing
 
         curTown = town;
 
@@ -549,6 +551,11 @@ public class GameManager : MonoBehaviour
         unit.ShowHideSprite(show);
 
         faction.Units.Add(unit);
+    }
+
+    public void SpawnFreeColonist(Town town) //food growth
+    {
+        GenerateLandUnit(town.Faction, town.CurHex, 0, true); //0 = Free Colonists
     }
 
     private void GenerateAllNativeUnits()
@@ -670,6 +677,7 @@ public class GameManager : MonoBehaviour
             for (int j = 0; j < factions[i].Towns.Count; j++)
             {
                 factions[i].Towns[j].AccumulateToWarehouse();
+                factions[i].Towns[j].RunWorkshops(true);
             }
         }
     }
@@ -679,13 +687,28 @@ public class GameManager : MonoBehaviour
         playerTurn = true;
         SelectPlayerFirstUnit();
         AccumulateStockAllTowns();
+        string foodNews = ConsumeFoodPlayerTowns();
 
         EuropeManager.instance.RandomImmigrantsToNewWorld();
 
         EuropeManager.instance.ConsumeEUStock();
 
         DialogManager.instance.ToggleAiMoveDialog(false);
+        if (foodNews != null)
+            DialogManager.instance.ShowColonyFoodText(foodNews);
         DialogManager.instance.ShowQueuedEvents();
+    }
+
+    private string ConsumeFoodPlayerTowns() //only player towns: AI and native towns have no workers or food model
+    {
+        string news = null;
+        foreach (Town town in playerFaction.Towns.ToArray()) //ToArray: a starving worker changes unit lists
+        {
+            string s = town.ConsumeFood();
+            if (s != null)
+                news = news == null ? s : news + "\n" + s;
+        }
+        return news;
     }
 
     public void HideOtherLandUnits(Unit thisUnit)

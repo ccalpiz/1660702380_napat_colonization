@@ -133,7 +133,7 @@ public class Dialog : MonoBehaviour
                     $"We propose a <color=yellow>peace treaty</color>. Do you agree?");
             else
                 notiText.text =
-                    ($"The <color=yellow>{faction.Nation}</color> tribe welcomes you." +
+                    ($"The <color=yellow>{faction.Nation}</color> tribe welcomes you. " +
                     $"To celebrate our friendship, we generously offer you " +
                     $"the land you now occupy as a gift. Will you accept our treaty " +
                     $"and live with us in peace as brothers?");
